@@ -1,0 +1,21 @@
+crackmapexec smb <ip/cidr> -u <user> -d <domain> -p <user password>
+in ip/cidr example = 192.168.1.0/24 if you don't understand it
+
+now this will run through our network and find which user has this password and the specify user 
+
+you can choose either choose from 'ssh', 'smb', 'rdp', 'ldap', 'winrm', 'ftp', 'mssql')
+
+after that password confirmation we can now try to attack the user with our information 
+using 
+
+psexec.py <domain>/user:<password>@<target ip>
+
+psexec.py nani.org/ligion:Password0@192.168.1.24
+
+
+Note when performing this attack you will notice an anti virus notification on the target machine
+
+like please turn on anti virus 
+
+I blured some of info in the image which for a privacy but those are already written here 
+and doesn't provide too much information about this attack they're expected output when the attack performed well
