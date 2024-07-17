@@ -1,7 +1,0 @@
-Run responder and point it to where your target connected example eth1 and you need to be on same network
-
-now you will expect to see an IP on 
-
-Responder IP [] <-- use the ip inside of this to windows machine and write it on quick access //<ip from responder ip>
-
-And it might ask you a username or password or maybe not and then after that the hash will be captured 
