@@ -17,7 +17,7 @@ import ta
 # Initialize Neptune run
 run = neptune.init_run(
     project="yuki-pikazo/Jotaro",
-    api_token="eyJhcGlfYWRkcmVzcyI6Imh0dHBzOi8vYXBwLm5lcHR1bmUuYWkiLCJhcGlfdXJsIjoiaHR0cHM6Ly9hcHAubmVwdHVuZS5haSIsImFwaV9rZXkiOiIwOTg0NWVmOC03YTdiLTRhMmMtYmQ5Zi04OGQxMzJjNGJkYWMifQ=="
+    api_token=""
 )
 
 # Define date range for data
