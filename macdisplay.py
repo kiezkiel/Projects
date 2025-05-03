@@ -10,6 +10,8 @@ import os
 
 LOG_FILE = "/home/pi/macdisplay.log"
 
+logging.basicConfig(level=logging.INFO)
+
 def log_to_file(message):
     with open(LOG_FILE, "a") as f:
         f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}\n")
@@ -39,14 +41,11 @@ class MacDisplay(plugins.Plugin):
     def __init__(self):
         self.mac_text = ""
         self.displayed = False
+        self.failed = False
 
     def on_loaded(self):
         logging.info("[macdisplay] Plugin loaded.")
-
         try:
-            # Show custom face while changing MAC
-            pwnagotchi.face.set("/o\\")  # or "UwU" or similar
-
             run_and_log(["ip", "link", "set", "wlan0", "down"])
             output = run_and_log(["macchanger", "-r", "wlan0"])
             run_and_log(["iw", "dev", "wlan0", "set", "type", "monitor"])
@@ -57,13 +56,14 @@ class MacDisplay(plugins.Plugin):
             old_mac = next((l for l in lines if "Permanent MAC" in l), "")
             new_mac = next((l for l in lines if "New MAC" in l), "")
             self.mac_text = f"{old_mac}\n{new_mac}" if old_mac and new_mac else "MAC change failed"
+            self.failed = False
 
         except subprocess.CalledProcessError as e:
             self.mac_text = f"MAC setup failed:\n{e}"
             logging.error(f"[macdisplay] MAC setup error: {e}")
-            pwnagotchi.face.set("(╯°□°）╯︵ ┻━┻")  # face for failure
-        else:
-            pwnagotchi.face.set("^_^")  # happy face after success
+            self.failed = True
+
+        log_to_file(f"Final MAC text: {self.mac_text}")
 
     def on_ui_setup(self, ui):
         ui.add_element(
@@ -79,9 +79,14 @@ class MacDisplay(plugins.Plugin):
     def on_ready(self, ui):
         if not self.displayed:
             self.displayed = True
+
+            if self.failed:
+                pwnagotchi.face.set("(╯°□°）╯︵ ┻━┻")
+            else:
+                pwnagotchi.face.set("^_^")
+
             ui.set("mac_display", self.mac_text)
 
-            # Hide it after 10 seconds
             def hide_after_delay():
                 time.sleep(10)
                 with ui._lock:
