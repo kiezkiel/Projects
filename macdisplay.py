@@ -1,5 +1,5 @@
 from pwnagotchi.ui.components import Text
-from pwnagotchi.ui.view import BLACK
+from pwnagotchi.ui.view import WHITE
 import pwnagotchi.plugins as plugins
 import pwnagotchi
 import subprocess
@@ -9,7 +9,6 @@ import time
 import os
 
 LOG_FILE = "/home/pi/macdisplay.log"
-
 logging.basicConfig(level=logging.INFO)
 
 def log_to_file(message):
@@ -32,6 +31,14 @@ def run_and_log(command):
         log_to_file(f"Error:\n{e.stderr.strip()}")
         raise
 
+def wait_for_interface(interface, up=True, timeout=10):
+    for _ in range(timeout):
+        result = subprocess.run(["ip", "link", "show", interface], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        if (up and b"state UP" in result.stdout) or (not up and b"state DOWN" in result.stdout):
+            return True
+        time.sleep(1)
+    return False
+
 class MacDisplay(plugins.Plugin):
     __author__ = "your_name"
     __version__ = "1.2"
@@ -47,9 +54,12 @@ class MacDisplay(plugins.Plugin):
         logging.info("[macdisplay] Plugin loaded.")
         try:
             run_and_log(["ip", "link", "set", "wlan0", "down"])
+            wait_for_interface("wlan0", up=False)
+
             output = run_and_log(["macchanger", "-r", "wlan0"])
             run_and_log(["iw", "dev", "wlan0", "set", "type", "monitor"])
             run_and_log(["ip", "link", "set", "wlan0", "up"])
+            wait_for_interface("wlan0", up=True)
 
             # Parse MAC output
             lines = output.splitlines()
@@ -69,7 +79,7 @@ class MacDisplay(plugins.Plugin):
         ui.add_element(
             "mac_display",
             Text(
-                color=BLACK,
+                color=WHITE,
                 value="",
                 position=(5, 5),
                 font=pwnagotchi.ui.fonts.Small
@@ -80,16 +90,20 @@ class MacDisplay(plugins.Plugin):
         if not self.displayed:
             self.displayed = True
 
+            # Set face depending on success
             if self.failed:
-                pwnagotchi.face.set("(╯°□°）╯︵ ┻━┻")
+                ui.set("face", "(╯°□°）╯︵ ┻━┻")
             else:
-                pwnagotchi.face.set("^_^")
+                ui.set("face", "^_^")
 
+            # Show MAC info
             ui.set("mac_display", self.mac_text)
 
+            # Clear after delay
             def hide_after_delay():
                 time.sleep(10)
                 with ui._lock:
                     ui.set("mac_display", "")
+                    ui.set("face", "-_-")  # Optional: reset face
 
-            threading.Thread(target=hide_after_delay).start()
+            threading.Thread(target=hide_after_delay, daemon=True).start()
