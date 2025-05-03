@@ -6,12 +6,35 @@ import subprocess
 import threading
 import logging
 import time
+import os
+
+LOG_FILE = "/home/pi/macdisplay.log"
+
+def log_to_file(message):
+    with open(LOG_FILE, "a") as f:
+        f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} {message}\n")
+
+def run_and_log(command):
+    try:
+        log_to_file(f"Running: {' '.join(command)}")
+        result = subprocess.run(
+            command,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+        log_to_file(f"Output:\n{result.stdout.strip()}")
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        log_to_file(f"Error:\n{e.stderr.strip()}")
+        raise
 
 class MacDisplay(plugins.Plugin):
     __author__ = "your_name"
-    __version__ = "1.1"
+    __version__ = "1.2"
     __license__ = "GPL3"
-    __description__ = "Changes MAC, sets monitor mode, and displays MAC info on boot."
+    __description__ = "Changes MAC, sets monitor mode, logs output, and displays MAC info on boot with face."
 
     def __init__(self):
         self.mac_text = ""
@@ -21,26 +44,13 @@ class MacDisplay(plugins.Plugin):
         logging.info("[macdisplay] Plugin loaded.")
 
         try:
-            # Bring interface down
-            subprocess.run(["ip", "link", "set", "wlan0", "down"], check=True)
+            # Show custom face while changing MAC
+            pwnagotchi.face.set("/o\\")  # or "UwU" or similar
 
-            # Change MAC
-            result = subprocess.run(
-                ["macchanger", "-r", "wlan0"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                check=True
-            )
-
-            # Set monitor mode
-            subprocess.run(["iw", "dev", "wlan0", "set","type","monitor"], check=True)
-
-            # Bring interface back up
-            subprocess.run(["ip", "link", "set", "wlan0", "up"], check=True)
-
-            output = result.stdout.strip()
-            logging.info(f"[macdisplay] macchanger output:\n{output}")
+            run_and_log(["ip", "link", "set", "wlan0", "down"])
+            output = run_and_log(["macchanger", "-r", "wlan0"])
+            run_and_log(["iw", "dev", "wlan0", "set", "type", "monitor"])
+            run_and_log(["ip", "link", "set", "wlan0", "up"])
 
             # Parse MAC output
             lines = output.splitlines()
@@ -51,6 +61,9 @@ class MacDisplay(plugins.Plugin):
         except subprocess.CalledProcessError as e:
             self.mac_text = f"MAC setup failed:\n{e}"
             logging.error(f"[macdisplay] MAC setup error: {e}")
+            pwnagotchi.face.set("(╯°□°）╯︵ ┻━┻")  # face for failure
+        else:
+            pwnagotchi.face.set("^_^")  # happy face after success
 
     def on_ui_setup(self, ui):
         ui.add_element(
